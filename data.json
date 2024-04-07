@@ -1,1 +1,1 @@
-{"704874557827186773": {"days_active": 1, "last_active": "2024-04-06", "today_count": 2}}
+{"params": {"daily_threshold": 3, "activity_threshold": 10}, "data": {"704874557827186773": {"days_active": 2, "last_active": "2024-04-07", "today_count": 2}, "376019492280598539": {"days_active": 2, "last_active": "2024-04-06", "today_count": 5}}}
