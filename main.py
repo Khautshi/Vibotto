@@ -1,21 +1,29 @@
 import os
 import discord
 from typing import Union
-from tracktools import ActivityTracker
-from discord.ext import commands
+from datetime import datetime as dt
+from tracktools import UserTracker, ServerTracker
+from discord.ext import commands, tasks
 from discord import app_commands
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TEST_CHANNEL = 1226015133298593923
-TEST_ROLE = "mick test"
+TEST_ROLE = ServerTracker().active_role
 ADMIN_ROLE = "Admin"
+
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
+
+
+@tasks.loop(hours=24)
+async def loop_test():
+    channel = bot.get_channel(TEST_CHANNEL)
+    ServerTracker().activity_scan()
+    await channel.send(f"Loop test, this runs every X time. `{dt.now()}`\nCurrent loop: {loop_test.current_loop}")
 
 
 @bot.event
 async def on_ready():
-    # channel = bot.get_channel(TEST_CHANNEL)
-    # await channel.send("J'aldzhinn! Unn Vibotto :3")
+    await loop_test.start()
     await bot.tree.sync()
 
 
@@ -23,10 +31,10 @@ async def on_ready():
 async def on_message(message: discord.Message):
     user = message.author
     role = discord.utils.get(user.guild.roles, name=TEST_ROLE)
-    if not user.bot and role not in user.roles:
-        tracker = ActivityTracker(user)
-        tracker.log_msg()
-        if tracker.is_active():
+    if not user.bot:
+        tracker = UserTracker(user.id)
+        tracker.log_message()
+        if role not in user.roles and tracker.is_active():
             await user.add_roles(role)
             await message.channel.send("Maladjéts, mikkena du joo!", mention_author=True)
 
@@ -52,33 +60,46 @@ async def assign(interaction, role: discord.Role, target: Union[discord.Role, di
 
 @bot.tree.command()
 @app_commands.describe(daily="Minimum amount of messages a user must send for it to count as a day of activity.",
-                       activity="Minimum amount of days of activity for the user to be considered active.")
+                       activity="Minimum amount of days a user must be active.",
+                       inactivity="Maximum amount of days a user can be inactive.",
+                       role="Active user role.")
 @app_commands.checks.has_role(ADMIN_ROLE)
-async def update_parameters(interaction, daily: int = None, activity: int = None):
+async def update_parameters(interaction, daily: int = None, activity: int = None, inactivity: int = None
+                            , role: discord.Role = None):
     """Updates activity tracking parameters."""
-    tracker = ActivityTracker()
-    tracker.set_threshold(daily=daily, activity=activity)
-    await interaction.response.send_message(f"Update successfull")
+    ServerTracker().set_params(daily=daily, activity=activity, inactivity=inactivity, role=role.name)
+    await interaction.response.send_message(f"Parameters updated successfully.")
 
 
 @bot.tree.command()
 @app_commands.describe(user="Search target.")
 @app_commands.checks.has_role(ADMIN_ROLE)
-async def check_history(interaction, user: discord.Member):
+async def check_activity(interaction, user: discord.Member):
     """Displays the stored data for a given user."""
-    tracker = ActivityTracker(user)
+    tracker = UserTracker(user.id)
     content = tracker.get_activity()
     if content:
-        await interaction.response.send_message(f"**{user.name}**\n```{content}```")
+        await interaction.response.send_message(f"**{user.name}**```{content}```")
+    else:
+        await interaction.response.send_message(f"No results found for `{user.name}`")
 
 
 @bot.tree.command()
 @app_commands.checks.has_role(ADMIN_ROLE)
 async def check_parameters(interaction):
     """Displays the current activity tracking parameters."""
-    tracker = ActivityTracker()
-    content = tracker.get_params()
+    content = ServerTracker().get_params()
     if content:
-        await interaction.response.send_message(f"**Parameters**\n```{content}```")
+        await interaction.response.send_message(f"**Parameters**```{content}```")
+
+
+@bot.tree.command()
+@app_commands.checks.has_role(ADMIN_ROLE)
+async def force_update(interaction):
+    """Test command for debugging. This will be replaced with a daily loop."""
+    inactive_users = [interaction.guild.get_member(user_id) for user_id in ServerTracker().activity_scan()]
+    role = discord.utils.get(interaction.guild.roles, name=TEST_ROLE)
+    for user in inactive_users:
+        await user.remove_roles(role)
 
 bot.run(BOT_TOKEN)
