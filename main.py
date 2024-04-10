@@ -1,7 +1,7 @@
 import os
 import discord
 from typing import Union
-from datetime import datetime as dt
+from datetime import time
 from tracktools import UserTracker, ServerTracker
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -14,17 +14,18 @@ ADMIN_ROLE = "Admin"
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 
-@tasks.loop(hours=24)
+@tasks.loop(time=time(hour=6, minute=30))
 async def loop_test():
-    channel = bot.get_channel(TEST_CHANNEL)
-    ServerTracker().activity_scan()
-    await channel.send(f"Loop test, this runs every X time. `{dt.now()}`\nCurrent loop: {loop_test.current_loop}")
+    inactive_users = [discord.utils.get(bot.get_all_members(), id=user_id) for user_id in ServerTracker().activity_scan()]
+    role = discord.utils.get(inactive_users[0].roles, name=TEST_ROLE)
+    for user in inactive_users:
+        await user.remove_roles(role)
 
 
 @bot.event
 async def on_ready():
-    await loop_test.start()
     await bot.tree.sync()
+    await loop_test.start()
 
 
 @bot.event
@@ -64,10 +65,12 @@ async def assign(interaction, role: discord.Role, target: Union[discord.Role, di
                        inactivity="Maximum amount of days a user can be inactive.",
                        role="Active user role.")
 @app_commands.checks.has_role(ADMIN_ROLE)
-async def update_parameters(interaction, daily: int = None, activity: int = None, inactivity: int = None
-                            , role: discord.Role = None):
+async def update_parameters(interaction, daily: int = None, activity: int = None, inactivity: int = None,
+                            role: discord.Role = None):
     """Updates activity tracking parameters."""
-    ServerTracker().set_params(daily=daily, activity=activity, inactivity=inactivity, role=role.name)
+    tracker = ServerTracker()
+    role = role.name if role else None
+    tracker.set_params(daily=daily, activity=activity, inactivity=inactivity, role=role)
     await interaction.response.send_message(f"Parameters updated successfully.")
 
 

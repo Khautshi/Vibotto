@@ -1,16 +1,1 @@
-{
-  "params": {
-    "daily_threshold": 3,
-    "activity_threshold": 1,
-    "inactivity_threshold": 20,
-    "perms_role": "mick test"
-  },
-  "data": {
-    "704874557827186773": {
-      "days_active": 1,
-      "days_inactive": 0,
-      "last_active": "2024-04-09",
-      "today_count": 3
-    }
-  }
-}
+{"params": {"daily_threshold": 3, "activity_threshold": 1, "inactivity_threshold": 20, "perms_role": "mick test"}, "data": {}}

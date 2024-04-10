@@ -1,5 +1,5 @@
 import json
-from datetime import datetime as dt
+from datetime import datetime as dt, time
 
 
 def load_data():
@@ -14,6 +14,7 @@ class BaseTracker:
         self._json = load_data()
         self._params = self._json["params"]
         self._data = self._json["data"]
+
         self.daily_thres = self._params["daily_threshold"]
         self.activity_thres = self._params["activity_threshold"]
         self.inactivity_thres = self._params["inactivity_threshold"]
@@ -53,6 +54,7 @@ class ServerTracker(BaseTracker):
             self.daily_thres = self._params["daily_threshold"]
             self.activity_thres = self._params["activity_threshold"]
             self.inactivity_thres = self._params["inactivity_threshold"]
+            self.active_role = self._params["perms_role"]
             with open("data.json", mode="w", encoding="utf-8") as file:
                 self._json["params"] = self._params
                 json.dump(self._json, file)
@@ -76,16 +78,17 @@ class ServerTracker(BaseTracker):
             return None
 
     def activity_scan(self):
-        inactive_users = []
-
+        """Scans all members in server and updates their activity history accordingly
+        :return: List of [int] IDs of all inactive users or None"""
         def not_enough():
             was_active = user_data["last_active"] == self.today
             low_count = user_data["today_count"] < self.daily_thres
             return (was_active and low_count) or not was_active
 
+        inactive_users = []
         for user_id, user_data in self._data.items():
             if user_data["days_inactive"] >= self.inactivity_thres:
-                inactive_users.append(user_id)    # remove data, user is inactive, role must be revoked, return list of inactive users (ID)
+                inactive_users.append(user_id)
             else:
                 if not_enough():
                     self._active_today(user_id, False)
