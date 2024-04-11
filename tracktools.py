@@ -1,5 +1,5 @@
 import json
-from datetime import datetime as dt, time
+from datetime import datetime as dt
 
 
 def load_data():
@@ -49,7 +49,7 @@ class ServerTracker(BaseTracker):
         :param int daily: Minimum amount of messages a user must send for it to count as a day of activity
         :param int activity: Minimum amount of days a user must be active
         :param int inactivity: Maximum amount of days a user can be inactive
-        :param str role: Active user role"""
+        :param int role: Active user role ID"""
         def update_params():
             self.daily_thres = self._params["daily_threshold"]
             self.activity_thres = self._params["activity_threshold"]
