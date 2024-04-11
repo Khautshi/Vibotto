@@ -92,9 +92,8 @@ class ServerTracker(BaseTracker):
             else:
                 if not_enough():
                     self._active_today(user_id, False)
-                else:
-                    self._data[user_id]["today_count"] = 0
-                    self._update_data()
+                self._data[user_id]["today_count"] = 0
+                self._update_data()
         self._purge_users(inactive_users)
         return [int(user) for user in inactive_users]
 
