@@ -17,7 +17,7 @@ async def loop_test():
     """Loops runs once at 6:50 UTC every day."""
     inactive_users = [discord.utils.get(bot.get_all_members(), id=user_id) for user_id in
                       ServerTracker().activity_scan()]
-    role = discord.utils.get(inactive_users[0].roles, name=TEST_ROLE)
+    role = discord.utils.get(inactive_users[0].roles, name=ServerTracker().active_role)
     for user in inactive_users:
         await user.remove_roles(role)
 
@@ -31,7 +31,7 @@ async def on_ready():
 @bot.event
 async def on_message(message: discord.Message):
     user = message.author
-    role = discord.utils.get(user.guild.roles, id=TEST_ROLE)
+    role = discord.utils.get(user.guild.roles, id=ServerTracker().active_role)
     if not user.bot:
         tracker = UserTracker(user.id)
         tracker.log_message()
@@ -100,7 +100,7 @@ async def check_parameters(interaction):
 async def force_update(interaction):
     """Test command for debugging. This will be replaced with a daily loop."""
     inactive_users = [interaction.guild.get_member(user_id) for user_id in ServerTracker().activity_scan()]
-    role = discord.utils.get(interaction.guild.roles, name=TEST_ROLE)
+    role = discord.utils.get(interaction.guild.roles, name=ServerTracker().active_role)
     for user in inactive_users:
         await user.remove_roles(role)
 
